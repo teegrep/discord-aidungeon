@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+#
+# Discord API Reference: https://discordpy.readthedocs.io/en/latest/ext/commands/api.html
+#
 import os, sys, random, time
 import discord
 import json
@@ -50,17 +54,6 @@ async def select_game(message):
 
     return random_story(data)
 
-async def get_custom_prompt():
-    context = ""
-    await message.channel.send(
-        "\nEnter a prompt that describes who you are and the first couple sentences of where you start "
-        "out ex:\n 'You are a knight in the kingdom of Larion. You are hunting the evil dragon who has been "
-        + "terrorizing the kingdom. You enter the forest searching for the dragon and see' "
-    )
-    prompt = input("Starting Prompt: ")
-    return context, prompt
-
-
 def get_curated_exposition(
     setting_key, character_key, name, character, setting_description
 ):
@@ -94,16 +87,6 @@ def instructions():
     text = "\nAI Dungeon 2 Instructions:"
     text += '\n Enter actions starting with a verb ex. "go to the tavern" or "attack the orc."'
     text += '\n To speak enter \'say "(thing you want to say)"\' or just "(thing you want to say)" '
-    #text += "\n\nThe following commands can be entered for any action: "
-    #text += '\n  "/revert"   Reverts the last action allowing you to pick a different action.'
-    #text += '\n  "/quit"     Quits the game and saves'
-    #text += '\n  "/reset"    Starts a new game and saves your current one'
-    #text += '\n  "/restart"  Starts the game from beginning with same settings'
-    #text += '\n  "/save"     Makes a new save of your game and gives you the save ID'
-    #text += '\n  "/load"     Asks for a save ID and loads the game if the ID is valid'
-    #text += '\n  "/print"    Prints a transcript of your adventure (without extra newline formatting)'
-    #text += '\n  "/help"     Prints these instructions again'
-    #text += '\n  "/censor off/on" to turn censoring off or on.'
     return text
 
 async def start(message):
@@ -136,9 +119,8 @@ async def start(message):
         prompt, context=context, upload_story=upload_story
     )
 
-    id = story_manager.story.save_to_storage()
-
     await message.channel.send(result)
+    id = story_manager.story.save_to_storage()
 
     return id
 
@@ -156,14 +138,16 @@ async def play(saveId, action, message):
     result = story_manager.load_new_story(
                     saveId, upload_story=False
                 )
-    message.channel.send(result)
 
     if action == "":
         action = ""
         result = story_manager.act(action)
+        if result != "":
+            await message.channel.send(result)
 
     elif action[0] == '"':
         action = "You say " + action
+        await message.channel.send(action)
 
     else:
         action = action.strip()
@@ -190,7 +174,6 @@ async def play(saveId, action, message):
             await message.channel.send(
                 "Woops that action caused the model to start looping. Try a different action to prevent that."
             )
-            #continue
 
     if player_won(result):
         await message.channel.send(result + "\n CONGRATS YOU WIN")
@@ -226,7 +209,7 @@ async def on_message(message):
         with open(userStateFile) as f:
             userState = json.load(f)
 
-    print(json.dumps(userState))
+    print(f"User State: {json.dumps(userState)}")
 
     cmd = message.content
     if message.content.startswith(';'):
@@ -243,7 +226,5 @@ async def on_message(message):
         with open(userStateFile, 'w') as json_file:
             json.dump(userState, json_file)
 
-
-
-client.run(os.getenv('BISCUIT_BOT_TOKEN'))
+client.run(os.getenv('BOT_TOKEN'))
 
